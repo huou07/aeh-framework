@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "project": "<project>",
+  "product_type": "<product-type>",
+  "supported_platforms": ["<platform>"],
+  "required_gates": ["<source-gate>"],
+  "release_gates": ["<release-gate>"],
+  "external_requirements": [],
+  "hosted_ci": "none",
+  "gates": {
+    "<source-gate>": {"gate": "verify"},
+    "<release-gate>": {"gate": "acceptance"}
+  },
+  "report": ".hub/gate-report.json",
+  "artifacts": [
+    {"name": "<artifact-name>", "platform": "<platform>", "hash_required": true}
+  ],
+  "policies": {
+    "missing_evidence": "block",
+    "stale_evidence": "block",
+    "skipped_required_gate": "block",
+    "production_changes": "require_approval"
+  }
+}

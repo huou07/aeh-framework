@@ -1,0 +1,101 @@
+{
+  "id": "artifact-hash-mismatch",
+  "title": "an artifact whose file no longer matches its recorded sha256 is FAILED",
+  "project": {
+    "verify": "bash verify.sh",
+    "acceptance": "bash accept.sh"
+  },
+  "files": {
+    "verify.sh": "#!/usr/bin/env bash\nmkdir -p .hub\nprintf '%s' '{\"skipped\":[],\"not_run\":[]}' > .hub/gate-report.json\nexit 0\n",
+    "accept.sh": "#!/usr/bin/env bash\nmkdir -p .hub\nsha=$(sha256sum dist/app.bin | cut -d' ' -f1)\nprintf '{\"skipped\":[],\"not_run\":[],\"artifacts\":[{\"name\":\"app.bin\",\"path\":\"dist/app.bin\",\"sha256\":\"%s\",\"result\":\"PASS\"}]}' \"$sha\" > .hub/gate-report.json\nexit 0\n"
+  },
+  "artifacts": {
+    "dist/app.bin": "payload\n"
+  },
+  "contract": {
+    "schema": 1,
+    "project": "FX",
+    "product_type": "fixture",
+    "supported_platforms": [
+      "linux-x64"
+    ],
+    "required_gates": [
+      "source-integrity",
+      "product-build"
+    ],
+    "release_gates": [
+      "product-acceptance"
+    ],
+    "hosted_ci": "optional",
+    "gates": {
+      "source-integrity": {
+        "gate": "verify"
+      },
+      "product-build": {
+        "gate": "acceptance"
+      },
+      "product-acceptance": {
+        "gate": "acceptance"
+      }
+    },
+    "policies": {
+      "missing_evidence": "block",
+      "stale_evidence": "block",
+      "skipped_required_gate": "block",
+      "production_changes": "require_approval"
+    },
+    "report": ".hub/gate-report.json",
+    "artifacts": [
+      {
+        "name": "app.bin",
+        "platform": "linux-x64",
+        "hash_required": true
+      }
+    ]
+  },
+  "steps": [
+    {
+      "cmd": [
+        "verify",
+        "fx",
+        "--gate",
+        "verify"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "cmd": [
+        "verify",
+        "fx",
+        "--gate",
+        "acceptance"
+      ],
+      "expect_exit": 0
+    }
+  ],
+  "mutate": [
+    "modify-artifact"
+  ],
+  "probes": [
+    {
+      "cmd": [
+        "assess",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.overall.verdict",
+      "expect": "FAILED",
+      "expect_exit": 1
+    },
+    {
+      "cmd": [
+        "release-check",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.verdict",
+      "expect": "FAILED",
+      "expect_exit": 1
+    }
+  ]
+}

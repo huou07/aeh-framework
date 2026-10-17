@@ -1,0 +1,92 @@
+{
+  "id": "unpushed-head",
+  "title": "a HEAD the remote does not have cannot satisfy a hosted-CI contract",
+  "project": {
+    "verify": "bash verify.sh",
+    "acceptance": "bash accept.sh"
+  },
+  "files": {
+    "verify.sh": "#!/usr/bin/env bash\nmkdir -p .hub\nprintf '%s' '{\"skipped\":[],\"not_run\":[],\"runner\":{\"kind\":\"hosted\",\"os\":\"linux\",\"arch\":\"x86_64\",\"label\":\"conformance\",\"run_url\":\"https://example.invalid/run/1\",\"run_id\":\"1\",\"job\":\"gate\"}}' > .hub/gate-report.json\nexit 0\n",
+    "accept.sh": "#!/usr/bin/env bash\nmkdir -p .hub\nprintf '%s' '{\"skipped\":[],\"not_run\":[],\"runner\":{\"kind\":\"hosted\",\"os\":\"linux\",\"arch\":\"x86_64\",\"label\":\"conformance\",\"run_url\":\"https://example.invalid/run/1\",\"run_id\":\"1\",\"job\":\"gate\"}}' > .hub/gate-report.json\nexit 0\n"
+  },
+  "contract": {
+    "schema": 1,
+    "project": "FX",
+    "product_type": "fixture",
+    "supported_platforms": [
+      "linux-x64"
+    ],
+    "required_gates": [
+      "source-integrity",
+      "product-build"
+    ],
+    "release_gates": [
+      "product-acceptance"
+    ],
+    "hosted_ci": "required",
+    "gates": {
+      "source-integrity": {
+        "gate": "verify"
+      },
+      "product-build": {
+        "gate": "acceptance"
+      },
+      "product-acceptance": {
+        "gate": "acceptance"
+      }
+    },
+    "policies": {
+      "missing_evidence": "block",
+      "stale_evidence": "block",
+      "skipped_required_gate": "block",
+      "production_changes": "require_approval"
+    },
+    "report": ".hub/gate-report.json"
+  },
+  "git": {
+    "remote": true,
+    "ahead_commits": 1
+  },
+  "steps": [
+    {
+      "cmd": [
+        "verify",
+        "fx",
+        "--gate",
+        "verify"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "cmd": [
+        "verify",
+        "fx",
+        "--gate",
+        "acceptance"
+      ],
+      "expect_exit": 0
+    }
+  ],
+  "probes": [
+    {
+      "cmd": [
+        "assess",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.overall.verdict",
+      "expect": "BLOCKED",
+      "expect_exit": 3
+    },
+    {
+      "cmd": [
+        "release-check",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.verdict",
+      "expect": "BLOCKED",
+      "expect_exit": 3
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "id": "contract-command-injection",
+  "title": "a contract carrying a shell command is rejected and never executed",
+  "project": {
+    "verify": "bash verify.sh",
+    "acceptance": "bash accept.sh"
+  },
+  "files": {
+    "verify.sh": "#!/usr/bin/env bash\necho executed > canary.txt\nexit 0\n",
+    "accept.sh": "#!/usr/bin/env bash\necho executed > canary.txt\nexit 0\n"
+  },
+  "contract": {
+    "schema": 1,
+    "project": "FX",
+    "product_type": "fixture",
+    "supported_platforms": [
+      "linux-x64"
+    ],
+    "required_gates": [
+      "source-integrity",
+      "product-build"
+    ],
+    "release_gates": [
+      "product-acceptance"
+    ],
+    "hosted_ci": "optional",
+    "gates": {
+      "source-integrity": {
+        "gate": "verify"
+      },
+      "product-build": {
+        "gate": "acceptance"
+      },
+      "product-acceptance": {
+        "gate": "acceptance"
+      }
+    },
+    "policies": {
+      "missing_evidence": "block",
+      "stale_evidence": "block",
+      "skipped_required_gate": "block",
+      "production_changes": "require_approval"
+    },
+    "command": "touch canary.txt"
+  },
+  "probes": [
+    {
+      "cmd": [
+        "assess",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.overall.verdict",
+      "expect": "FAILED",
+      "expect_exit": 1
+    }
+  ],
+  "assert_absent": [
+    "canary.txt"
+  ]
+}

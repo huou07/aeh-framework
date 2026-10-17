@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aeh.example/contracts/quality.schema.json",
+  "title": "AEH quality contract",
+  "description": "Machine-readable declaration, owned by a project, of what 'verified' means for that project: which gates exist, which of them are required or release gates, supported platforms, how much hosted CI is expected, where the gate report is written, which artifacts must be hashed, and how missing or stale evidence is treated. This schema documents and declares the shape; scripts/quality_contract.py is the authoritative validator and additionally enforces cross-field rules that JSON Schema cannot express (every name in required_gates/release_gates must exist as a key of gates) and rejects command-injection keys case-insensitively at any depth. AEH never executes a command taken from this file. Lookup order: <project>/.aeh/quality.json, then <project>/docs/quality.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "project",
+    "product_type",
+    "hosted_ci",
+    "required_gates",
+    "release_gates",
+    "gates"
+  ],
+  "propertyNames": {
+    "$ref": "#/$defs/forbiddenCommandKeyName"
+  },
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "const": 1,
+      "description": "Contract schema version. Must be exactly 1; the boolean true is not accepted."
+    },
+    "project": {
+      "type": "string",
+      "pattern": "\\S",
+      "description": "Name of the project this contract belongs to. Non-empty, not whitespace only."
+    },
+    "product_type": {
+      "type": "string",
+      "pattern": "\\S",
+      "description": "Kind of product, for example emulator, desktop-app, daemon or library. Non-empty, not whitespace only."
+    },
+    "supported_platforms": {
+      "$ref": "#/$defs/uniqueNonEmptyStringArray",
+      "description": "Optional. Platform identifiers this project is expected to run on, for example linux-x64 or windows-x64. Entries are non-empty and unique."
+    },
+    "required_gates": {
+      "$ref": "#/$defs/nonEmptyUniqueStringArray",
+      "description": "Required. Gate names that must have fresh passing evidence before the project counts as verified. Non-empty, unique, and every name must be a key of gates."
+    },
+    "release_gates": {
+      "$ref": "#/$defs/nonEmptyUniqueStringArray",
+      "description": "Required. Gate names that must have fresh passing evidence before a release. Non-empty, unique, and every name must be a key of gates. Independent of required_gates: release does not imply required, nor the reverse."
+    },
+    "external_requirements": {
+      "$ref": "#/$defs/uniqueNonEmptyStringArray",
+      "description": "Optional. Requirements that cannot be satisfied by this repository alone, for example a physical GPU or a signing key. Each one becomes a named BLOCKED reason when unmet."
+    },
+    "hosted_ci": {
+      "enum": ["required", "optional", "none"],
+      "description": "Required. Whether hosted CI must cover this project. 'required' means a release additionally needs an unpushed-free HEAD and a hosted acceptance runner."
+    },
+    "gates": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/forbiddenCommandKeyName"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/gateEntry"
+      },
+      "description": "Required. Map of gate name to its declaration. Every name used by required_gates or release_gates must appear here."
+    },
+    "report": {
+      "$ref": "#/$defs/relativePath",
+      "description": "Optional. Project-relative, contained path of the JSON gate report written by the project's own gate and only read by AEH. Omitted means the documented default .hub/gate-report.json."
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifactEntry"
+      },
+      "description": "Optional. Artifacts whose hash and result must be proven in a gate report before release."
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "propertyNames": {
+        "$ref": "#/$defs/forbiddenCommandKeyName"
+      },
+      "properties": {
+        "missing_evidence": {
+          "$ref": "#/$defs/blockOrWarn",
+          "description": "How to treat a required gate with no record at all."
+        },
+        "stale_evidence": {
+          "$ref": "#/$defs/blockOrWarn",
+          "description": "How to treat a record that belongs to a different revision, command or contract."
+        },
+        "skipped_required_gate": {
+          "$ref": "#/$defs/blockOrWarn",
+          "description": "How to treat a required gate that the report marks as skipped or not run."
+        },
+        "production_changes": {
+          "enum": ["require_approval", "warn"],
+          "description": "How to treat changes that would reach production. 'block' is deliberately not a valid value here."
+        }
+      },
+      "description": "Optional. Evidence policies. Any subset may be present; omitted keys are documented defaults, never silently applied by the validator. Defaults: missing_evidence=block, stale_evidence=block, skipped_required_gate=block, production_changes=require_approval."
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "pattern": "\\S",
+      "description": "A string containing at least one non-whitespace character."
+    },
+    "uniqueNonEmptyStringArray": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      },
+      "uniqueItems": true,
+      "description": "An array of unique non-empty strings. May be empty."
+    },
+    "nonEmptyUniqueStringArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      },
+      "uniqueItems": true,
+      "description": "A non-empty array of unique non-empty strings."
+    },
+    "gateEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate"],
+      "propertyNames": {
+        "$ref": "#/$defs/forbiddenCommandKeyName"
+      },
+      "properties": {
+        "gate": {
+          "enum": ["verify", "acceptance", "release"],
+          "description": "The AEH gate command this contract name maps to: verify (cheap source gate), acceptance (admission gate) or release."
+        }
+      },
+      "description": "One gate declaration. The only allowed key is gate; the command itself lives in the owner-approved project registry entry, never here."
+    },
+    "artifactEntry": {
+      "type": "object",
+      "required": ["name"],
+      "propertyNames": {
+        "$ref": "#/$defs/forbiddenCommandKeyName"
+      },
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Artifact file name as it appears in the gate report."
+        },
+        "platform": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Optional platform identifier the artifact was built for."
+        },
+        "hash_required": {
+          "type": "boolean",
+          "description": "Optional. When true, the gate report must carry a 64-hex sha256 for this artifact."
+        }
+      },
+      "description": "One declared artifact. Extra descriptive keys are tolerated here by the authoritative validator, which restricts only the top level, gate entries and policy keys; the command-injection ban still applies to every key."
+    },
+    "relativePath": {
+      "type": "string",
+      "pattern": "\\S",
+      "allOf": [
+        {
+          "not": {
+            "pattern": "^(?:[A-Za-z]:|[\\\\/])"
+          }
+        },
+        {
+          "not": {
+            "pattern": "(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)"
+          }
+        }
+      ],
+      "description": "A path relative to the project root that stays inside it: no absolute POSIX path, no Windows drive or UNC path, no '..' component. Empty or whitespace-only is rejected."
+    },
+    "blockOrWarn": {
+      "enum": ["block", "warn"],
+      "description": "Evidence policy value."
+    },
+    "forbiddenCommandKeyName": {
+      "not": {
+        "pattern": "^([Cc][Oo][Mm][Mm][Aa][Nn][Dd]|[Cc][Mm][Dd]|[Rr][Uu][Nn]|[Ee][Xx][Ee][Cc]|[Ss][Hh][Ee][Ll][Ll]|[Ss][Cc][Rr][Ii][Pp][Tt])$"
+      },
+      "description": "Rejects object keys named command, cmd, run, exec, shell or script, case-insensitively. A repository metadata file must not become an execution vector: AEH executes only the owner-approved command in the project registry entry. scripts/quality_contract.py applies this ban to every object key at every depth and names the offending JSON path."
+    }
+  }
+}

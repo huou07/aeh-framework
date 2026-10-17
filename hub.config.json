@@ -1,0 +1,7 @@
+{
+  "$comment": "Public snapshot. Point workspace_root at your own projects directory.",
+  "version": 1,
+  "workspace_root": "/srv/aeh-workspace",
+  "registry": "projects/registry.json",
+  "usage_file": ".hub/usage.jsonl"
+}

@@ -1,0 +1,55 @@
+{
+  "id": "no-contract",
+  "title": "without a machine-readable contract nothing reaches VERIFIED",
+  "project": {
+    "verify": "bash verify.sh",
+    "acceptance": "bash accept.sh"
+  },
+  "files": {
+    "verify.sh": "#!/usr/bin/env bash\nexit 0\n",
+    "accept.sh": "#!/usr/bin/env bash\nexit 0\n"
+  },
+  "contract": null,
+  "steps": [
+    {
+      "cmd": [
+        "verify",
+        "fx",
+        "--gate",
+        "verify"
+      ],
+      "expect_exit": 0
+    },
+    {
+      "cmd": [
+        "verify",
+        "fx",
+        "--gate",
+        "acceptance"
+      ],
+      "expect_exit": 0
+    }
+  ],
+  "probes": [
+    {
+      "cmd": [
+        "assess",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.overall.verdict",
+      "expect": "NOT_VERIFIED",
+      "expect_exit": 3
+    },
+    {
+      "cmd": [
+        "release-check",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.verdict",
+      "expect": "NOT_VERIFIED",
+      "expect_exit": 3
+    }
+  ]
+}

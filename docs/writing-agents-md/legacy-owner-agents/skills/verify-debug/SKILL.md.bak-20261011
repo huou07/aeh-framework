@@ -1,0 +1,11 @@
+---
+name: verify-debug
+description: Run relevant tests, lint and deterministic checks, diagnose failures from evidence, fix and rerun until green or truly blocked. Use after any implementation change.
+---
+
+# Verify debug
+
+1. Select the smallest relevant checks: project test runner subset, `ruff check` (python), `shellcheck` (shell), `tsc --noEmit` where relevant.
+2. Run, capture full failure output. Diagnose from evidence — no guessing.
+3. Fix, rerun the same checks. Repeat until pass or a genuine blocker is established.
+4. Never claim PASS/FIXED without command output. Preserve project gates; report measured results + unresolved blockers.

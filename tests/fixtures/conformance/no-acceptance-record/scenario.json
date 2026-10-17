@@ -1,0 +1,78 @@
+{
+  "id": "no-acceptance-record",
+  "title": "verify alone leaves the admission gate and the release NOT_VERIFIED",
+  "project": {
+    "verify": "bash verify.sh",
+    "acceptance": "bash accept.sh"
+  },
+  "files": {
+    "verify.sh": "#!/usr/bin/env bash\nexit 0\n",
+    "accept.sh": "#!/usr/bin/env bash\nexit 0\n"
+  },
+  "contract": {
+    "schema": 1,
+    "project": "FX",
+    "product_type": "fixture",
+    "supported_platforms": [
+      "linux-x64"
+    ],
+    "required_gates": [
+      "source-integrity",
+      "product-build"
+    ],
+    "release_gates": [
+      "product-acceptance"
+    ],
+    "hosted_ci": "optional",
+    "gates": {
+      "source-integrity": {
+        "gate": "verify"
+      },
+      "product-build": {
+        "gate": "acceptance"
+      },
+      "product-acceptance": {
+        "gate": "acceptance"
+      }
+    },
+    "policies": {
+      "missing_evidence": "block",
+      "stale_evidence": "block",
+      "skipped_required_gate": "block",
+      "production_changes": "require_approval"
+    }
+  },
+  "steps": [
+    {
+      "cmd": [
+        "verify",
+        "fx",
+        "--gate",
+        "verify"
+      ],
+      "expect_exit": 0
+    }
+  ],
+  "probes": [
+    {
+      "cmd": [
+        "assess",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.overall.verdict",
+      "expect": "NOT_VERIFIED",
+      "expect_exit": 3
+    },
+    {
+      "cmd": [
+        "release-check",
+        "fx",
+        "--json"
+      ],
+      "json_path": "data.verdict",
+      "expect": "NOT_VERIFIED",
+      "expect_exit": 3
+    }
+  ]
+}

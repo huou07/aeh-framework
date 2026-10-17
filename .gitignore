@@ -1,0 +1,27 @@
+# Hub-local artifacts. Project source repositories must never live here.
+Projects/
+*.jsonl.tmp
+
+# Python caches from running scripts/hub.py
+__pycache__/
+.ruff_cache/
+*.pyc
+/.hub/
+
+# Verification evidence is machine-generated local state, never committed.
+# Drop the historical /evidence/verification.jsonl line only together with a
+# dated migration note; docs/hub-cli.md must state .hub/ is authoritative.
+/evidence/verification.jsonl
+
+# Unreadable per-harness stub directories created by tooling outside git.
+.agents/
+.aws/
+.codex/
+
+# Machine-local CodeGraph index, same rule as every registered project.
+.codegraph/
+
+# Scratch left by a harness probe. Ignored because `git add -A -- scripts`
+# picked it up twice and both times the publication gate caught it in the
+# snapshot; the gate is the guard, this stops it reaching the gate at all.
+/scripts/dsh_effort_probe.cjs

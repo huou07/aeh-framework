@@ -1,0 +1,15 @@
+---
+name: skill-maintainer
+description: Add or update a shared skill once in ~/.agents/skills following the Agent Skills standard, quarantine and review external skills before installing. Use when creating or maintaining skills.
+---
+
+# Skill maintainer
+
+Provenance: locally authored 2026-10-11 for this workbench (no upstream).
+
+1. Author in `~/.agents/skills/<skill-name>/SKILL.md`: frontmatter requires `name` (^[a-z0-9]+(-[a-z0-9]+)*$, = dir name) and `description` (what + when-to-use). Keep skills small, procedural, tool-agnostic.
+2. External skill: download to `/tmp/skill-quarantine/<name>/` (never directly into a skill root). Record upstream URL, license, revision. Inspect SKILL.md, scripts, manifests, hooks. Scan (see security-review). Install only approved files; never auto-execute hooks on every prompt.
+3. Wire discovery with symlinks (bodies stay in `~/.agents/skills/`):
+   - OpenCode: `~/.config/opencode/skills/<name> -> ~/.agents/skills/<name>`
+   - Codex: `~/.codex/skills/<name> -> ~/.agents/skills/<name>`
+4. Validate: `head` frontmatter, `opencode --help` / skill list where available, one minimal load test.
